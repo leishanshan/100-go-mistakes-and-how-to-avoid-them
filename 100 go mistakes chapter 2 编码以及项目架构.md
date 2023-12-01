@@ -2,7 +2,23 @@
 ## 🤔1.Unintended variable shadowing 意想不到的变量阴影
 variable shadowing：在go中，一个变量在一块区域声明之后还能在内层模块中重新声明
 下面的代码，外层内层都定义了client，因为内层用了:=符号声明，所以外层的client是空的，这段代码要不是因为log里面使用了client，一般情况会报错，指示有client变量已声明或者未使用
-![e24ecbf64abea58bdfb5adfbc4f7aee1.png](:/db9d78f91f63422fbb2e4e2a9914bec7)
+```
+var client *http.Client
+if tracing {
+  client, err := createClientWithTracing()
+  if err != nil {
+    return err
+  }
+  log.Println(client)
+} else {
+  client, err := createDefaultClient()
+  if err != nil {
+    return err
+  }
+  log.Println(client)
+}
+// Use client
+```
 那如何保证给原始client变量赋了值呢？两种方式
 第一种：在内层模块里面使用临时变量，然后再把临时变量赋给client
 ![1a51b27ce2e4c4d6b135814a62e9136a.png](:/e01c4cc392ef4a388cb8a5406ceb2a6c)
