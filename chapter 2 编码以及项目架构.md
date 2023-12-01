@@ -227,59 +227,141 @@ Don’t design with interfaces, discover them.
 
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/92cc92f6-92b3-4cf0-8ee2-b5b645c984b9)
 
-
 在其他语言里使用第一种，但是在go里面一般用第二种方式，前面说过接口不要过度设计，需要用的时候再创建，所以更多的是根据消费侧的需求决定合适的抽象方式
 因为客户端可能只需要用接口里的一个方法，这种情况就可以直接在客户端创建一个interface
-![87a29acf46cef2abf5e0c6830f963aa7.png](:/af55a13124254c439d42a3746b4354e5)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/efe56c3e-9df5-4ae5-a7c3-f4e5aac9966e)
+
 也有一些场景例外，例如标准库里面，encoding包定义了interface，在子包encoding/json，encoding/binary中实现，这种一般是开发者很清楚这些接口是有用的
 
 
 ## 🤔7.Returning interfaces 返回接口
 设计函数的时候，可以返回接口，也可以返回具体实现，如果返回接口会产生循环依赖的问题
-![161465edee581900459516182cd0f681.png](:/92e985ceedf04f6e92c7a4be39a6bc73)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/dc8f023b-dfae-4111-ae13-daf3a93f73db)
+
 store包中InMemoryStore struct实现了在client包中定义的store接口，NewInMemoryStore又返回client的store接口，这样client包就无法调用NewInMemoryStore函数，不然就会产生循环依赖
 返回接口会限制灵活性，所以应该
 - 返回structs而不是interfaces
 - 入参尽可能接收interfaces
 在有一种情况下也可以返回interface，就是很明确知道接口对client包有用时
-![66935a95e60e830516e6ab91cdb1e648.png](:/ca740d889f4048e69a52dd3d72530ded)
-
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/c1c71959-5426-4c27-b383-96b09154c6b9)
 
 ## 🤔8. any 不传达任何信息
 any是空接口的别名，可以用来代替interface{}
 any缺乏表达能力，后面维护的人还得去看文档或者实现代码才能理解
-![08da2cfc6fbed2666ef496a06bed1a8c.png](:/2edefbb0a64c4dc38eeab6a747732427)
+```
+package store
+type Customer struct{
+// Some fields
+}
+type Contract struct{
+// Some fields
+}
+type Store struct{}
+func (s *Store) Get(id string) (any, error) {
+// ...
+}
+func (s *Store) Set(id string, v any) error {
+// ...
+}
+```
 编译不会有问题，但是入参和返回值无法表达有用的信息，而且这种可能会有啥类型都调用的情况，比如int
-![ba17994af59a4d1581f3fd3f644eff79.png](:/6c11dd8e74ba4764bd219f947c0df27d)
+```
+s := store.Store{}
+s.Set("foo", 42)
+```
 还不如把每个结构体的get和set方法都写一遍，减少不易理解的风险，虽然这样方法会很多，但是一般client包会使用interface，只封装自己需要的方法
-![394405ac5eea2f236ee00631cb8cf759.png](:/31b74b92a2b143d0aed6fc53f3c5d6fd)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/03975e73-0de7-4094-9d07-86b48dbeaa60)
+
 **可以使用any的场景**
 示例1：encoding/json包中的Marshal函数
 示例2：database/sql包，如果query字段参数化，也可以用any参数
-![887becaad9724be1954cc85efc9a5141.png](:/29e4efeb6cea42b3b3305022b949a534)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/19590dbb-bba5-4170-a7b5-660a0ba4078b)
 
 
 ## 🤔9. 困惑何时使用泛型
 示例：
 需要获取`map[string][int]`中的string
-![bb7ec2dab52a848694713eaf652a591e.png](:/87ddaef49a4245d090b9a86d5e1d7eb5)
+```
+func getKeys(m map[string]int) []string {
+var keys []string
+for k := range m {
+keys = append(keys, k)
+}
+return keys
+}
+```
 如果后面又新增获取`map[int][string]`的需求，写两个函数或者用switch case的方式都会有代码冗余，而且用switch case方式返回类型必须是any，检查类型是在运行的阶段进行的而不是编译的阶段，所以还得return error，同时调用方还要做类型检查或者额外的类型转换
-![324176b575031280366d7bd3dbddbe92.png](:/366a44763e0e4823b03febf4a2f30d13)
+```
+func getKeys(m any) ([]any, error) {
+switch t := m.(type) {
+default:
+return nil, fmt.Errorf("unknown type: %T", t)
+case map[string]int:
+var keys []any
+for k := range t {
+keys = append(keys, k)
+}
+return keys, nil
+case map[int]string:
+// Copy the extraction logic
+}
+}
+```
 使用泛型
-![eb1230fa8a30af708e35adeabe9b1f9b.png](:/c62daa1d60a44d7d83aa005cb6312e0a)
+```
+func getKeys[K comparable, V any](m map[K]V) []K {
+var keys []K
+for k := range m {
+keys = append(keys, k)
+}
+return keys
+}
+```
 注意：map的key必须是可以比较的类型，切片、map和函数都不能直接比较，所有泛型这个的key的类型是comparable而不是any
 也可以自定义约束类型
-![e483bbae73bb50cbad284909132a6f02.png](:/c01504bde8f84339b37723597c4c2e2a)
+```
+type customConstraint interface {
+~int | ~string
+}
+func getKeys[K customConstraint,V any](m map[K]V) []K {   //Changes the type parameter K to be a customConstraint type
+// Same implementation
+}
+```
 调用方式，使用自定义约束类型之后这个函数会强制要求key类型必须是int或者string
-![63087319f556c20d39fc674a20e915e4.png](:/f3028d14d6b24b25acf7bdc9a2217172)
+```
+m = map[string]int{
+"one": 1,
+"two": 2,
+"three": 3,
+}
+keys := getKeys(m)
+```
 **使用泛型的场景：**
 1.数据结构：二叉树、堆和链表。。
 2.使用any类型切片、map或channel的函数，例如函数要合并两个any类型的channel
-![9cc92cdd8350b76ddeb4e4b0fc9ac4bd.png](:/ee958d406a02458d9308ee10fa78064c)
+```
+func merge[T any](ch1, ch2 <-chan T) <-chan T {
+// ...
+}
+```
 3.提取公用功能而不是变量类型的时候，例如sort包
-![fb4d96474fa9a182da8497008235f403.png](:/402bd82f602641988d8525287cbc87d6)
+```
+type Interface interface {
+Len() int
+Less(i, j int) bool
+Swap(i, j int)
+}
+```
 这个接口可以被不同的函数sort.Ints或sort.Float64s使用
-![769e8d5f8f82a29add8f2e61d99e6a12.png](:/8490c13d1fec4ae3b3721d09c6374ca5)
+```
+type SliceFn[T any] struct {
+S []T
+Compare func(T, T) bool
+}
+func (s SliceFn[T]) Len() int { return len(s.S) }
+func (s SliceFn[T]) Less(i, j int) bool { return s.Compare(s.S[i], s.S[j]) }
+func (s SliceFn[T]) Swap(i, j int) { s.S[i], s.S[j] = s.S[j], s.S[i] }
+```
 
 ## 🤔10. 没有意识到内嵌类型可能出现的问题
 
