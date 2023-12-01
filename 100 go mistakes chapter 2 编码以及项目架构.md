@@ -88,6 +88,7 @@ func join(s1, s2 string, max int) (string, error) {
 函数嵌套层数越多可读性越差越难理解
 if语句如果有返回值，后面就不要用else了
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/4420f0df-584c-43f6-952c-fcb4d76581a0)
+
 也可以像下面这样
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/81016f08-33d1-468f-9a36-ed27536abab5)
 
@@ -95,29 +96,78 @@ if语句如果有返回值，后面就不要用else了
 
 ## 🤔3.Misusing init functions 滥用init函数
 1.main包和redis包，因为main引用了redis中的函数，所以先执行redis包里的init函数，然后执行main中的init函数，最后执行main函数
-![97182c4122fd8e78ff11579e30acd711.png](:/ce0cd3481d8f4f1992685bffe5d98177)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/7ed15096-ae1b-4db4-afc8-d8af53c5a06d)
+
 2.在同一个包里或者同一个go文件中可以定义多个init函数，一个go文件里init按顺序执行，同一个包不同go，按照go文件命名的字母顺序执行，比如a包里 有a.go,和b.go，先执行a.go再执行b.go中的init
 危险在于源文件能够重命名，这会影响执行顺序
-![7d7e6f67903c3c5371b9dead4c3c2d22.png](:/59fa652f55514d9991de60bba489bcc2)
+```
+package main
+import (
+"fmt"
+_ "foo"
+)
+func main() {
+  // ...
+}
+```
 **错误示例：**
-![51ffe7c93cdeedbd4f733aab954d65b4.png](:/1ca14670370d46bea19714a6052c4e73)
+```
+var db *sql.DB
+func init() {
+  dataSourceName :=os.Getenv("MYSQL_DATA_SOURCE_NAME")
+  d, err := sql.Open("mysql", dataSourceName)
+  if err != nil {
+    log.Panic(err)
+  }
+  err = d.Ping()
+  if err != nil {
+    log.Panic(err)
+  }
+  db = d
+}
+```
 - 首先，init函数里面的容错管理比较局限，因为init没有入参也不返回，唯一能捕获error的方式就是panic，但如果数据库连接出现问题，这样整个程序就会挂掉
 - 另一个缺点就是，要写单元测试的时候，init会在测试用例之前执行，如果只是测试一个工具函数，不需要数据库连接，这样init就把单元测试搞复杂了
 - 第三个缺点，示例里面数据库连接必须要定义成全局变量，但是全局变量有严重的缺点，包里的任何函数都能修改全局变量，其实更应该封装一个变量，而不是保持它的全局性
 应该就把前面的初始化当简单函数处理，错误处理应该交给函数调用者，而且数据库连接池也封装起来了
-![84a42ff868a4c45182ac3f62d7979022.png](:/f9aff7cf300345769128acb91db736f4)
+```
+func createClient(dsn string) (*sql.DB, error) {
+  db, err := sql.Open("mysql", dsn)
+  if err != nil {
+    return nil, err
+  }
+  if err = db.Ping(); err != nil {
+    return nil, err
+  }
+  return db, nil
+}
+```
 **正确示例：**
 下面init函数不会报错，因为http.HandleFunc会panic，而且也是有在handle为nil的时候会panic，示例不会有这种情况，同时示例里面也不用创建全局变量，函数也不会影响单元测试，
-![e154812f48c1281fba003bd595cdbc39.png](:/0171e5bfaf2e45e08e8cda4bcaafbdfb)
-![91790361eebed9b7b1ef4d09f23dc55a.png](:/017f40a44d2d412d918d325cbc69b639)
+```
+func init() {
+  redirect := func(w http.ResponseWriter, r *http.Request) {
+    http.Redirect(w, r, "/", http.StatusFound)
+  }
+  http.HandleFunc("/blog", redirect)
+  http.HandleFunc("/blog/", redirect)
+  static := http.FileServer(http.Dir("static"))
+  http.Handle("/favicon.ico", static)
+  http.Handle("/fonts.css", static)
+  http.Handle("/fonts/", static)
+  http.Handle("/lib/godoc/", http.StripPrefix("/lib/godoc/",
+  http.HandlerFunc(staticHandler)))
+}
+```
 init一般在定义静态配置的时候有用，大多数情况还是用特定函数来初始化
 
 
 ## 🤔4.Overusing getters and setters / getters和setters过度使用
 go里面没有强制的要使用getters和setters获取数据，一般情况下也不需要用，只有在比如后面要添加新功能，要隐藏内部实现更灵活的时候用，用也要按下面的方式用
-![5ec3f98ed3788e8a25ecf61cf08756f5.png](:/32a6b9506e6847ad9bf9e64fd21328d5)
-![3d31479da460db9ac5004a977733698c.png](:/5fb48e6398e34862bd7c77152534cea1)
 
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/4b115add-a163-4e23-b9f0-811f6a7a3152)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/9f4d93b3-df93-4eca-9141-2fac5753052c)
 
 ## 🤔5.Interface污染
 设计接口的时候注意，interface越大抽象能力越弱
@@ -125,28 +175,59 @@ go里面没有强制的要使用getters和setters获取数据，一般情况下�
 1.Common behavior 通用功能
 比如集合排序，可以抽象为3种方法（Len、Less、Swap），
 2.Decoupling 解耦
-![538fcf9a1b668b2aab959d492ac2aa95.png](:/f67f9e0f85c84b00b98192d9477019dc)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/274a7165-7bed-46b8-a74d-b993dc3cf46c)
+
 如果要进行单元测试，需要创建一个新的customer并存储，
 如果用上面的方式，因为customerService依赖具体的实现来存储customer，测试的时候不得不需要集成测试，还得启动一个mysql实例
 为了更灵活一点，将customerService和具体的实现解耦，通过接口来存储customer，这样测试改方法的时候更灵活，既可以用集成测试，也可以通过模拟使用单元测试
-![de34026ac165c5d06991cdc7026ab9f4.png](:/ca011e909879444b9fdba110b39b3241)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/f97f2531-8259-4c5f-b3bf-d7257215f860)
+
 3.Restricting behavior  限制行为
 示例：
 实现一个custom配置包处理动态配置
-![842923e4ec5fc6fa77b6cdd915f27065.png](:/bb1c4d14d0bc4588bc7536aae4e142a3)
+```
+type IntConfig struct {
+  // ...
+}
+func (c *IntConfig) Get() int {
+  // Retrieve configuration
+}
+func (c *IntConfig) Set(value int) {
+  // Update configuration
+}
+```
 现在有一个threshold的配置，只能读不能对它更新，如果不想更改配置包怎么实现？
 通过创建一个接口来约束对配置的只读功能
-![c62e94372b44024689cd29d770010dc8.png](:/f2415295577a4e41afc729c6a744a84d)
+```
+type intConfigGetter interface {
+Get() int
+}
+
+type Foo struct {
+  threshold intConfigGetter
+}
+func NewFoo(threshold intConfigGetter) Foo {
+  return Foo{threshold: threshold}
+}
+func (f Foo) Bar() {
+  threshold := f.threshold.Get()
+  // ...
+}
+```
 Don’t design with interfaces, discover them.
 建议接口不要过度设计，需要用的时候再创建，接口过度设计会导致代码很复杂可读性差
-![9203e1e9878b4cf5b8c90da086269261.png](:/f3c2c7308bf04be9b0306cc16faa2964)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/0f15c821-45c0-4fbc-b2d6-bfbd2790be1c)
 
 
 ## 🤔6.生产端的interface
 接口应该放在哪？
 第一种放在生产侧，指接口的定义和接口功能具体实现放在一个包
 第二种放在消费侧，指接口的定义和外部调用接口的客户端放一起
-![3850f8a784b1b51bfd498feaf27f638a.png](:/d34a397cd1a54d85b109500e888df742)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/558485b8-415c-461d-b393-4a4ba118eaad)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/92cc92f6-92b3-4cf0-8ee2-b5b645c984b9)
+
+
 在其他语言里使用第一种，但是在go里面一般用第二种方式，前面说过接口不要过度设计，需要用的时候再创建，所以更多的是根据消费侧的需求决定合适的抽象方式
 因为客户端可能只需要用接口里的一个方法，这种情况就可以直接在客户端创建一个interface
 ![87a29acf46cef2abf5e0c6830f963aa7.png](:/af55a13124254c439d42a3746b4354e5)
