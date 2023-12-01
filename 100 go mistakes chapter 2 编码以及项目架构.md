@@ -21,20 +21,76 @@ if tracing {
 ```
 那如何保证给原始client变量赋了值呢？两种方式
 第一种：在内层模块里面使用临时变量，然后再把临时变量赋给client
-![1a51b27ce2e4c4d6b135814a62e9136a.png](:/e01c4cc392ef4a388cb8a5406ceb2a6c)
+```
+var client *http.Client
+if tracing {
+  c, err := createClientWithTracing()
+  if err != nil {
+  return err
+  }
+  client = c
+} else {
+  // Same logic
+}
+```
 第二种：在内层模块直接用=赋值
 
 
 ## 🤔2.Unnecessary nested code 没必要的嵌套代码
 错误示范：
-![8d1a66d547cf86508b73a074031e7d3c.png](:/d7af26730b4f4407ae9debc49609d704)
+```
+func join(s1, s2 string, max int) (string, error) {
+  if s1 == "" {
+    return "", errors.New("s1 is empty")
+  } else {
+    if s2 == "" {
+      return "", errors.New("s2 is empty")
+    } else {
+      concat, err := concatenate(s1, s2)
+      if err != nil {
+        return "", err
+      } else {
+        if len(concat) > max {
+          return concat[:max], nil
+        } else {
+          return concat, nil
+          }
+        }
+      }
+  }
+}
+func concatenate(s1 string, s2 string) (string, error) {
+  // ...
+}
+```
 正确示范：
-![ea74202fedb3708f3a4acf292b493f5f.png](:/167c365e1f654504bf3e99cd3d74fafc)
+```
+func join(s1, s2 string, max int) (string, error) {
+  if s1 == "" {
+    return "", errors.New("s1 is empty")
+  }
+  if s2 == "" {
+    return "", errors.New("s2 is empty")
+  }
+  concat, err := concatenate(s1, s2)
+  if err != nil {
+    return "", err
+  }
+  if len(concat) > max {
+    return concat[:max], nil
+  }
+  return concat, nil
+  }
+  func concatenate(s1 string, s2 string) (string, error) {
+  // ...
+}
+```
 函数嵌套层数越多可读性越差越难理解
 if语句如果有返回值，后面就不要用else了
-![fc966de6acf96ea0b84153cd45bf2270.png](:/f8892ce0d4c04ca8856d8c886784e7e9)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/4420f0df-584c-43f6-952c-fcb4d76581a0)
 也可以像下面这样
-![4ed9a47cd4591c8ecb91da1d6f48e8d5.png](:/62248a85b3a946bcb44c81b9e752fcad)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/81016f08-33d1-468f-9a36-ed27536abab5)
+
 
 
 ## 🤔3.Misusing init functions 滥用init函数
