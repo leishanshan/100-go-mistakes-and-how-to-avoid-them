@@ -171,10 +171,11 @@ go里面没有强制的要使用getters和setters获取数据，一般情况下�
 
 ## 🤔5.Interface污染
 设计接口的时候注意，interface越大抽象能力越弱
+
 用interface的场景：
-1.Common behavior 通用功能
+- 1.Common behavior 通用功能
 比如集合排序，可以抽象为3种方法（Len、Less、Swap），
-2.Decoupling 解耦
+- 2.Decoupling 解耦
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/274a7165-7bed-46b8-a74d-b993dc3cf46c)
 
 如果要进行单元测试，需要创建一个新的customer并存储，
@@ -182,7 +183,7 @@ go里面没有强制的要使用getters和setters获取数据，一般情况下�
 为了更灵活一点，将customerService和具体的实现解耦，通过接口来存储customer，这样测试改方法的时候更灵活，既可以用集成测试，也可以通过模拟使用单元测试
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/f97f2531-8259-4c5f-b3bf-d7257215f860)
 
-3.Restricting behavior  限制行为
+- 3.Restricting behavior  限制行为
 示例：
 实现一个custom配置包处理动态配置
 ```
@@ -223,6 +224,7 @@ Don’t design with interfaces, discover them.
 接口应该放在哪？
 第一种放在生产侧，指接口的定义和接口功能具体实现放在一个包
 第二种放在消费侧，指接口的定义和外部调用接口的客户端放一起
+
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/558485b8-415c-461d-b393-4a4ba118eaad)
 
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/92cc92f6-92b3-4cf0-8ee2-b5b645c984b9)
