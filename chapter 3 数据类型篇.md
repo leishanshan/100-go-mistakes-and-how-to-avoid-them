@@ -1,7 +1,11 @@
 #  👀Data types 数据类型篇
 
 ## 🤔17.创建容易混淆的八进制字面量
-![d330df27fcee3381f4cc79beef423286.png](:/4e718fa6b661470c8a342191d87a2806)
+错误示例：
+```
+sum := 100 + 010
+fmt.Println(sum)
+```
 go中0开头的整型数字被认为是8进制数字，8进制的010是十进制的8，所以100+010是108
 所以需要使用8进制的时候尽量用0o，0和0o效果是一样的，但是会使代码更易懂
 
@@ -13,32 +17,98 @@ go中0开头的整型数字被认为是8进制数字，8进制的010是十进制
 很多人容易把切片的length和capacity混淆
 `s:=make([]int,3,6)`
 第一个参数是length，第二个参数是capacity
-![46636e946a1e4a54388bab4f84fe65d9.png](:/75403d6171e4446ba67b94c30a4b7041)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/73ed07f0-c9e2-4f1f-bbdd-cbd0f5527008)
+
 切片通过append插入元素，如果超过capacity大小，会创建一个新的array，将之前的容量翻倍，当元素超过1024时，容量每次增长25%，初始array不再被引用，如果在堆上分配就会被gc回收
 s1,s2引用同一个array
-![c1bc5d7902904f0ab3dd343bca53e31a.png](:/9c0d64b305074fb4a6c917b9ea9cecca)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/680bc066-9177-48e5-98ef-aff78e9ed620)
+
 修改某一个值，s1和s2中的值都会改变
-![82093ab51d3bf9862a60a6024d5c3b46.png](:/a9754138b39a43ebabcb412b58981d43)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/67a67b4b-dee0-4b40-8494-5798d4cc534b)
+
 对s2 append新的值，s1不会被修改
-![24054a11d86709f167c62ac90d00dfbe.png](:/f431a5b1fa7b4cbea74e23f4b1cc4d5a)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/50825e61-b590-4a82-8c6a-dd3e042beb7a)
+
 如果对s2 append超过容量的值，会创建新的数组，s1和s2指向不同的array
-![7b99d8c11ab0823c7018fdb4be462a1a.png](:/d0f04ca0d25d4138ac4d3d6c4e6fb5e6)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/ab01a38c-684a-45b8-92ec-c38818c7ca19)
+
 
 ## 🤔21.低效的切片初始化
 用make初始化切片的时候尽量提供长度和容量，不然append值的时候会一直开辟新的空间并复制原来的array到新的array中，gc还需要努力回收，如果切片元素太大会降低性能
 2种方式，一种分配cap不分配length，另一种分配length
-![fd297e077634a5025ff5b0139027f60b.png](:/462cc6976a724d36b34ce7eef913371a)
-![b1973cc68c4883baa367f312d864ca04.png](:/7f0e5cd8d8fb48db92a68b534db7f059)
-![32e0f1758e74e8c48a0b16dc5711355f.png](:/81378293eeca4313a295cc12226ab55e)
+```
+func convert(foos []Foo) []Bar {
+  n := len(foos)
+  bars := make([]Bar, 0, n)
+  for _, foo := range foos {
+    bars = append(bars, fooToBar(foo))
+  }
+  return bars
+}
+```
+```
+func convert(foos []Foo) []Bar {
+  n := len(foos)
+  bars := make([]Bar, n)
+  for i, foo := range foos {
+    bars[i] = fooToBar(foo)
+  }
+  return bars
+}
+```
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/82c89425-5d4e-4bc1-a0f4-51fb65ea1704)
+
 虽然第三种更快，但是和第二种性能相差不大，代码却更复杂，推荐第二种用append
-![62445a05b708f2f3c6d5ff8d3008718e.png](:/137a17641370475994fee58ee5be3782)
+```
+func collectAllUserKeys(cmp Compare,tombstones []tombstoneWithLevel) [][]byte {
+  keys := make([][]byte, 0, len(tombstones)*2)
+  for _, t := range tombstones {
+    keys = append(keys, t.Start.UserKey)
+    keys = append(keys, t.End)
+  }
+  // ...
+}
+```
+```
+func collectAllUserKeys(cmp Compare,
+tombstones []tombstoneWithLevel) [][]byte {
+  keys := make([][]byte, len(tombstones)*2)
+  for i, t := range tombstones {
+    keys[i*2] = t.Start.UserKey  //这种方式代码可读性差
+    keys[i*2+1] = t.End
+  }
+  // ...
+}
+```
 
 ## 🤔22.对nil和empty的切片混淆不清
 nil切片是空的，但空切片不一定是nil
 nil slice没有任何内存分配
 empty slice长度为0
-![095cc3b0a4d863e3d0ff29ca663694c2.png](:/9162c6d9683246c38f19c41f0cd560e2)
-![042b67a8188de0b598fb697650e518a9.png](:/0b8b074196e749dfbff56e3ff37981c0)
+```
+func main() {
+  var s []string
+  log(1, s)
+  s = []string(nil)
+  log(2, s)
+  s = []string{}
+  log(3, s)
+  s = make([]string, 0)
+  log(4, s)
+}
+func log(i int, s []string) {
+  fmt.Printf("%d: empty=%t\tnil=%t\n", i, len(s) == 0, s == nil)
+}
+```
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/88c17e01-73db-4155-8553-6997f23fc515)
+
 使用场景：
 1.如果不确定切片长度以及切片是否能为空，使用 `var s []string`初始化
 2.如果切片长度是已知的，就用`s=make([]string,length)`初始化
@@ -48,31 +118,103 @@ empty slice长度为0
 ## 🤔23.检查slice为空的不恰当使用
 不要用是否为nil判断切片是否为空，应该**取切片长度**来判断
 错误示例：
-![8862e6a2481de5c5fed6c6453df0ff00.png](:/32aa97b760ce4431a6c776ccb4de0f1d)
-![d52b811e2590bd7af40ba6e759d3b5cf.png](:/8bd8051ef32b49308fe6a03b60545932)
+```
+func handleOperations(id string) {
+  operations := getOperations(id)
+  if operations != nil {
+    handle(operations)
+  }
+}
+func getOperations(id string) []float32 {
+  operations := make([]float32, 0)
+  if id == "" {
+    return operations
+  }
+  // Add elements to operations
+  return operations
+}
+```
 检查长度
-![3bf8453af4f7c7258b7eb74710d6689c.png](:/6c7ca2a1b30340b699144b1d70fcccaa)
+```
+func handleOperations(id string) {
+  operations := getOperations(id)
+  if len(operations) != 0 {
+    handle(operations)
+  }
+}
+```
 
 
 ## 🤔24.错误使用切片copy函数
 错误示范：
-![461f77afc2bb125bb4b021148b597ab5.png](:/4dd2c5b6b2954ce0bd5226f0e0a1977c)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/0d9724b5-6b47-48e7-b856-6ac5f194d760)
+
 解决：
-1.![172f40509ac492a222ec02b44d368fa8.png](:/227b927c1d95462485b910ca37d877f1)
-2.![87a6ae6c8aec85209acfbda6d03678e2.png](:/ab6e776fadb4489bbcd54bff6e0de60e)
+1. 创建一个给定长度的dst切片
+```
+src := []int{0, 1, 2}
+var dst []int
+copy(dst, src)
+fmt.Println(dst)
+```
+2. 第二种方式
+```
+src := []int{0, 1, 2}
+dst := append([]int(nil), src...)
+```
 
 ## 🤔25.使用切片append产生的副作用
-![ccb17186776087af475d6ff2b9a91281.png](:/52aabab15ed945d0b31469f8d79f09c8)
+错误示例：
+s[2]被修改为10
+```
+s1 := []int{1, 2, 3} 
+s2 := s1[1:2]
+s3 := append(s2, 10)
+```
 s1,s2,s3共享内存
-![82124d453f4cc5a4bef0f8490b1600b3.png](:/3bfd4433d9444ff7898d87d50c0f1fa4)
-![acb919956c58a1eecbc5eef891b03a82.png](:/44b85effb16f43e1ba46955d53826236)
-解决方式：
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/0c543cf2-c623-4cf5-b111-6e4d4420e7c0)
+
+```
+func main() {
+  s := []int{1, 2, 3}
+  f(s[:2])
+  fmt.Println(s) // [1 2 10]
+}
+func f(s []int) {
+  _ = append(s, 10)
+}
+```
+**解决方式：**
 1.使用copy，缺点是代码可读性差，以及slice很大时使用copy开销大
-![67ae72362d8f853cc28ff0c2846fd4ad.png](:/ec33f222886142189682c95713961f83)
+```
+func main() {
+  s := []int{1, 2, 3}
+  sCopy := make([]int, 2)
+  copy(sCopy, s)
+  f(sCopy)
+  result := append(sCopy, s[2])
+  // Use result
+}
+func f(s []int) {
+  // Update s
+}
+```
 2.使用全切片表达式，从一个已有切片中创建新的切片
 `newSlice=oldSlice[low:high:max]`
-![7d8b08ade47487c04d9fb05183d56c61.png](:/a735ae29f7c0410e938cd0cc98883b78)
-![761e8a0c886d13f3ff6da01404fa4122.png](:/b09e6457dce741cb99547cea521b8b2a)
+```
+func main() {
+  s := []int{1, 2, 3}
+  f(s[:2:2])
+  // Use s
+}
+func f(s []int) {
+  // Update s
+}
+```
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/7f8d6285-d0c6-4082-bd89-62c8407bc545)
+
 
 ## 🤔26.切片内存泄漏
 场景示例1：一条消息包含100万字节，前5字节表示消息类型，getMessageType计算消息类型，运行程序消耗1G内存，剩余空间因为切片的引用无法被gc掉
