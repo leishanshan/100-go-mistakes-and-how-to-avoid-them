@@ -267,18 +267,18 @@ func keepFirstTwoElementsOnly(foos []Foo) []Foo {
 1.使用copy，因为返回的不是原切片，没有被引用，所以gc能回收
 ```
 func keepFirstTwoElementsOnly(foos []Foo) []Foo {
-res := make([]Foo, 2)
-copy(res, foos)
-return res
+  res := make([]Foo, 2)
+  copy(res, foos)
+  return res
 }
 ```
 2.如果想保留1000个元素的底层容量，可以显式地将其余切片标记为nil，这里返回len为2，cap为1000的切片，GC可以回收剩下的998个
 ```
 func keepFirstTwoElementsOnly(foos []Foo) []Foo {
-for i := 2; i < len(foos); i++ {
-foos[i].v = nil
-}
-return foos[:2]
+  for i := 2; i < len(foos); i++ {
+    foos[i].v = nil
+  }
+  return foos[:2]
 }
 ```
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/069281d3-3f39-4a48-8d47-6c03f82db451)
