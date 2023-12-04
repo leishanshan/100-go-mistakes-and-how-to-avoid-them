@@ -26,7 +26,7 @@ var client *http.Client
 if tracing {
   c, err := createClientWithTracing()
   if err != nil {
-  return err
+    return err
   }
   client = c
 } else {
@@ -80,8 +80,8 @@ func join(s1, s2 string, max int) (string, error) {
     return concat[:max], nil
   }
   return concat, nil
-  }
-  func concatenate(s1 string, s2 string) (string, error) {
+}
+func concatenate(s1 string, s2 string) (string, error) {
   // ...
 }
 ```
@@ -253,17 +253,17 @@ any缺乏表达能力，后面维护的人还得去看文档或者实现代码�
 ```
 package store
 type Customer struct{
-// Some fields
+  // Some fields
 }
 type Contract struct{
-// Some fields
+  // Some fields
 }
 type Store struct{}
 func (s *Store) Get(id string) (any, error) {
-// ...
+  // ...
 }
 func (s *Store) Set(id string, v any) error {
-// ...
+  // ...
 }
 ```
 编译不会有问题，但是入参和返回值无法表达有用的信息，而且这种可能会有啥类型都调用的情况，比如int
@@ -285,56 +285,56 @@ s.Set("foo", 42)
 需要获取`map[string][int]`中的string
 ```
 func getKeys(m map[string]int) []string {
-var keys []string
-for k := range m {
-keys = append(keys, k)
-}
-return keys
+  var keys []string
+  for k := range m {
+    keys = append(keys, k)
+  }
+  return keys
 }
 ```
 如果后面又新增获取`map[int][string]`的需求，写两个函数或者用switch case的方式都会有代码冗余，而且用switch case方式返回类型必须是any，检查类型是在运行的阶段进行的而不是编译的阶段，所以还得return error，同时调用方还要做类型检查或者额外的类型转换
 ```
 func getKeys(m any) ([]any, error) {
-switch t := m.(type) {
-default:
-return nil, fmt.Errorf("unknown type: %T", t)
-case map[string]int:
-var keys []any
-for k := range t {
-keys = append(keys, k)
-}
-return keys, nil
-case map[int]string:
-// Copy the extraction logic
-}
+  switch t := m.(type) {
+    default:
+    return nil, fmt.Errorf("unknown type: %T", t)
+    case map[string]int:
+    var keys []any
+    for k := range t {
+      keys = append(keys, k)
+    }
+    return keys, nil
+    case map[int]string:
+    // Copy the extraction logic
+  }
 }
 ```
 使用泛型
 ```
 func getKeys[K comparable, V any](m map[K]V) []K {
-var keys []K
-for k := range m {
-keys = append(keys, k)
-}
-return keys
+  var keys []K
+  for k := range m {
+    keys = append(keys, k)
+  }
+  return keys
 }
 ```
 注意：map的key必须是可以比较的类型，切片、map和函数都不能直接比较，所有泛型这个的key的类型是comparable而不是any
 也可以自定义约束类型
 ```
 type customConstraint interface {
-~int | ~string
+  ~int | ~string
 }
 func getKeys[K customConstraint,V any](m map[K]V) []K {   //Changes the type parameter K to be a customConstraint type
-// Same implementation
+  // Same implementation
 }
 ```
 调用方式，使用自定义约束类型之后这个函数会强制要求key类型必须是int或者string
 ```
 m = map[string]int{
-"one": 1,
-"two": 2,
-"three": 3,
+  "one": 1,
+  "two": 2,
+  "three": 3,
 }
 keys := getKeys(m)
 ```
@@ -343,22 +343,22 @@ keys := getKeys(m)
 2.使用any类型切片、map或channel的函数，例如函数要合并两个any类型的channel
 ```
 func merge[T any](ch1, ch2 <-chan T) <-chan T {
-// ...
+  // ...
 }
 ```
 3.提取公用功能而不是变量类型的时候，例如sort包
 ```
 type Interface interface {
-Len() int
-Less(i, j int) bool
-Swap(i, j int)
+  Len() int
+  Less(i, j int) bool
+  Swap(i, j int)
 }
 ```
 这个接口可以被不同的函数sort.Ints或sort.Float64s使用
 ```
 type SliceFn[T any] struct {
-S []T
-Compare func(T, T) bool
+  S []T
+  Compare func(T, T) bool
 }
 func (s SliceFn[T]) Len() int { return len(s.S) }
 func (s SliceFn[T]) Less(i, j int) bool { return s.Compare(s.S[i], s.S[j]) }
