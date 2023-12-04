@@ -1,7 +1,13 @@
 ## 🤔48.使用panic
 panic可以直接结束函数执行流并返回上一个堆栈直到协程被返回或者被recover捕获（recover只能用在defer中，因为defer函数会继续执行即便函数panic了）
 panic用来标记真正的异常场景，比如程序错误
-![c2dc85868aee1034dfafe9bf62939422.png](:/b499dae4b8af4e708ebd952f96264097)
+```
+func checkWriteHeaderCode(code int) {
+	if code < 100 || code > 999 {
+		panic(fmt.Sprintf("invalid WriteHeader code %v", code))
+	}
+}
+```
 另一个使用场景：
 程序需要依赖项但无法初始化时，例如公开一个服务需要验证电子邮件地址，用了一个正则表达式，这种情况下正则表达式是一个强制性的依赖项，如果不能编译它后面就无法验证任何电子邮件输入，所以必须使用panic以防出现错误
 
@@ -15,10 +21,15 @@ eg：“Permission denied” => “user X access resourceY cause permission deni
 eg：http处理程序，检查调用函数时收到的所有error时是否都是Forbidden类型，这样就可以返回403，这种场景就可以将error包装在Forbidden中
 %w和%v的区别：
 使用%w，源error依然有效，源error的类型和值都能unwrap，但是使用%v后源error无效
-![a120e5487b9739c2df4caf94cda33807.png](:/f11f3e6999fe4261b76b2d2c82c6796c)
-![bc988acc45a8ee3561feadabaeed05cc.png](:/5d8173503c8940dfa209179809f2c768)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/23ffb4a3-639e-4cd3-b07c-800521b2a67a)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/8bbf7e23-915b-4eff-907c-4d7ac4cce6e5)
+
 但是使用%w也有局限性，例如使用调用者Foo检查源error是否是bar error，后面如果将实现做了修改并使用另一个返回其他类型error的函数，Foo检查函数就会有问题，为了确保客户端不依赖我们所考虑的实现细节，返回的错误应该被转换而不是被包装，用%v更合适
-![0c6fcc42086680d05659d0150da689bb.png](:/554be8c7869b4624a9814bd945375fa2)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/e6f806b6-1f3c-4aac-8a8c-417f2a27c60f)
+
 
 ## 🤔50.错误的检查error类型
 场景：处理http请求，需要根据id从数据库中取交易金额并返回，会出现两种失败情况，1是id无效，2是db查询失败
@@ -78,9 +89,12 @@ func getTransactionAmountFromDB(transactionID string) (float32, error) {
 	// ...
 }
 ```
-![62875afefd10e5bcaf9fa60d88585e9a.png](:/3b8ed3cc4e3c4e8391d5dd47abda92df)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/5f6c0f2a-1cc3-4684-9014-88729fafe918)
+
 重构后：
-![b914c6f0f3abed8d7d939d05b75c6130.png](:/7229990b05b24d499b4dca3afdf82b75)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/eaf00792-1948-414b-9b84-969e75b6e4dc)
+
 解决方式： errors.As
 ```
 func handler(w http.ResponseWriter, r *http.Request) {
