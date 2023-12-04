@@ -5,13 +5,19 @@ rune是int32的别名
 type rune = int32
 rune关键字把字符串转成对应的unicode值
 utf-8 把unicode的两个字节，拆成3个字节，并填充上utf8标志位
-![eb32525b3efec0cd36aaec9fa8b22e51.png](:/80941086ab404c428f1e3656f68cb52a)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/4ec2d414-db12-40c2-9bc3-f2ca4e251f0d)
+
 
 ## 🤔37.错误的字符串迭代
-![b998db4ccd6f5fc5ea54c56d377fd0b6.png](:/7fc835da430f49128939c7873dcb21d4)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/92fb58b5-9c1e-487a-91bf-5659f767e734)
+
 首先，len返回字符串中的字节数而不是符文数量
 其次，遍历s时，打印s[i]不打印每个符文，而是打印一个符文的每个起始索引
-![d291acb830d62210d4b4acf25016b533.png](:/e89acb6d42f3453a811eb3e1711e253b)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/24f7ad86-e589-44e2-b2a1-c3e7987b985e)
+
 正确遍历方式：
 ```
 //方式1.使用range循环遍历
@@ -69,9 +75,13 @@ for _, value := range values {
 return sb.String()
 }
 ```
-![0b08bd2531a05bb7f22a9c3b8108a47e.png](:/0cb3f977e09f4178ad44ca1331c6e8ce)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/f27854d3-9ecc-4598-aa99-a91543ec54d6)
+
 使用 strings.Builder也可以append byte、rune
-![50557b7a0144d4593599ea0b32995716.png](:/cddc922f79d54cbfa4e80c3c21e2e5c7)
+
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/ed464001-b024-4d7e-a824-650716d27c22)
+
 此外，strings.Builder还提供了一个Grow(n int)方法
 ```
 func concat(values []string) string {
@@ -87,7 +97,8 @@ func concat(values []string) string {
 	return sb.String()
 }
 ```
-![e08c3a8692e2de59f8eed485ee69237b.png](:/719a5e7bd4ac4858b364b7e922550add)
+![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/89ad95ba-1fbb-4bf6-a920-0da03e806671)
+
 综合：如果字符串切片大小不超过5，使用操作符+=更好，如果切片长，最好还是用strings.Builder，如果能预先知道字节数，使用Grow方法来预先分配内部字节片
 
 ## 🤔40.无用的字符串转换
