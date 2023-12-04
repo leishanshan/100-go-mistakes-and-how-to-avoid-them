@@ -1,4 +1,5 @@
 # 100-go-mistakes-and-how-to-avoid-them
+# 持续更新中...
 
 ## 这本书分7类mistakes
 - bugs （）
