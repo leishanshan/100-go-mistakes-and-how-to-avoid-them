@@ -35,7 +35,7 @@ func consumer(ch <-chan Event) {
 	}
 }
 ```
-咋一看这段代码挺好的，但其实会产生内存泄露的问题。
+乍一看这段代码挺好的，但其实会产生内存泄露的问题。
 time.After返回的是channel，我们可能期望通道在每次循环中都是关闭的，但并不是，time.After创建的资源会在超时的时候才会释放，如果收到大量的消息，比如每小时五百万条，调用time.After应用将会消耗1GB的内存来存储资源。
 **解决方式：**
 1. 使用context代替time.After
@@ -56,7 +56,7 @@ func consumer(ch <-chan Event) {
 2. 使用time.NewTimer
 time.NewTimer，返回的结构包含通道C，Reset重置duration，和Stop()方法停止计时器
 每次循环调用Reset方法比创建一个新的上下文简单得多，速度快，对gc压力小因为不用分配新的堆空间
-```
+```go
 func consumer(ch <-chan Event) {
 	timerDuration := 1 * time.Hour
 	timer := time.NewTimer(timerDuration) //创建一个新计时器
@@ -139,7 +139,7 @@ func (e Event) MarshalJSON() ([]byte, error) {
 下面代码比较time序列化再反序列化后和原来是否相同
 ```
 t := time.Now()
-	event1 := Event{
+event1 := Event{
 	Time: t,
 }
 b, err := json.Marshal(event1)
