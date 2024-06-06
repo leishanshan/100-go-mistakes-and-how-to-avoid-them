@@ -2,7 +2,7 @@
 标准库提供了接收time.Duration的通用函数和方法，time.Duration是int64类型的别名，对初学者可能会感到迷惑，并提供错误的time.Duration，这和java会有差异
 错误示例：
 下面创建了一个新的周期性定时器，每秒嘀嗒一次
-```
+```go
 ticker := time.NewTicker(1000)
 for {
 	select {
@@ -13,7 +13,7 @@ for {
 ```
 运行代码会发现并不是每秒一次而是每微秒一次，那是因为time.Duration代表两个瞬间之间经过的时间，这个单位是纳秒，所有上面代码实质是1000纳秒=1微秒
 另外，如果想创建一个间隔1微秒的time.Ticker，不应该直接传递一个int64，应该使用以下方式
-```
+```go
 ticker = time.NewTicker(time.Microsecond)
 // Or
 ticker = time.NewTicker(1000 * time.Nanosecond)
