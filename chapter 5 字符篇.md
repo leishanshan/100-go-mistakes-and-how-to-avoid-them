@@ -14,12 +14,13 @@ utf-8 把unicode的两个字节，拆成3个字节，并填充上utf8标志位
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/92fb58b5-9c1e-487a-91bf-5659f767e734)
 
 首先，len返回字符串中的字节数而不是符文数量
+
 其次，遍历s时，打印s[i]不打印每个符文，而是打印一个符文的每个起始索引
 
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/24f7ad86-e589-44e2-b2a1-c3e7987b985e)
 
 正确遍历方式：
-```
+```go
 //方式1.使用range循环遍历
 s := "hêllo"
 for i, r := range s {
@@ -43,7 +44,7 @@ TrimRight和TrimSuffix函数经常会被混淆
 TrimRight/TrimLeft移除前后在给定set中的元素
 TrimSuffix/TrimPrefix 移除指定的前缀/后缀
 
-```
+```go
 //结果是123，因为TrimRight会遍历123oxo中的每个字符，如果是xo中的一部分就删除
 fmt.Println(strings.TrimRight("123oxo", "xo"))
 //结果是123o，TrimSuffix
@@ -56,7 +57,7 @@ fmt.Println(strings.TrimPrefix("oxo123", "ox")) /// o123
 
 ## 🤔39.字符串连接concatenation的使用优化不足
 错误示范：
-```
+```go
 func concat(values []string) string {
 s := ""    
 for _, value := range values {
@@ -66,7 +67,7 @@ return s
 }
 ```
 正确示范：使用strings包中的Builder构造
-```
+```go
 func concat(values []string) string {
 sb := strings.Builder{}
 for _, value := range values {
@@ -83,7 +84,7 @@ return sb.String()
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/ed464001-b024-4d7e-a824-650716d27c22)
 
 此外，strings.Builder还提供了一个Grow(n int)方法
-```
+```go
 func concat(values []string) string {
 	total := 0
 	for i := 0; i < len(values); i++ {
