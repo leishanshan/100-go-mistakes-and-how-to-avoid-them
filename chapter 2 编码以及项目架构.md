@@ -2,7 +2,7 @@
 ## 🤔1.Unintended variable shadowing 意想不到的变量阴影
 variable shadowing：在go中，一个变量在一块区域声明之后还能在内层模块中重新声明
 下面的代码，外层内层都定义了client，因为内层用了:=符号声明，所以外层的client是空的，这段代码要不是因为log里面使用了client，一般情况会报错，指示有client变量已声明或者未使用
-```
+```go
 var client *http.Client
 if tracing {
   client, err := createClientWithTracing()
@@ -21,7 +21,7 @@ if tracing {
 ```
 那如何保证给原始client变量赋了值呢？两种方式
 第一种：在内层模块里面使用临时变量，然后再把临时变量赋给client
-```
+```go
 var client *http.Client
 if tracing {
   c, err := createClientWithTracing()
@@ -38,7 +38,7 @@ if tracing {
 
 ## 🤔2.Unnecessary nested code 没必要的嵌套代码
 错误示范：
-```
+```go
 func join(s1, s2 string, max int) (string, error) {
   if s1 == "" {
     return "", errors.New("s1 is empty")
@@ -64,7 +64,7 @@ func concatenate(s1 string, s2 string) (string, error) {
 }
 ```
 正确示范：
-```
+```go
 func join(s1, s2 string, max int) (string, error) {
   if s1 == "" {
     return "", errors.New("s1 is empty")
@@ -100,7 +100,7 @@ if语句如果有返回值，后面就不要用else了
 
 2.在同一个包里或者同一个go文件中可以定义多个init函数，一个go文件里init按顺序执行，同一个包不同go，按照go文件命名的字母顺序执行，比如a包里 有a.go,和b.go，先执行a.go再执行b.go中的init
 危险在于源文件能够重命名，这会影响执行顺序
-```
+```go
 package main
 import (
 "fmt"
@@ -111,7 +111,7 @@ func main() {
 }
 ```
 **错误示例：**
-```
+```go
 var db *sql.DB
 func init() {
   dataSourceName :=os.Getenv("MYSQL_DATA_SOURCE_NAME")
@@ -130,7 +130,7 @@ func init() {
 - 另一个缺点就是，要写单元测试的时候，init会在测试用例之前执行，如果只是测试一个工具函数，不需要数据库连接，这样init就把单元测试搞复杂了
 - 第三个缺点，示例里面数据库连接必须要定义成全局变量，但是全局变量有严重的缺点，包里的任何函数都能修改全局变量，其实更应该封装一个变量，而不是保持它的全局性
 应该就把前面的初始化当简单函数处理，错误处理应该交给函数调用者，而且数据库连接池也封装起来了
-```
+```go
 func createClient(dsn string) (*sql.DB, error) {
   db, err := sql.Open("mysql", dsn)
   if err != nil {
@@ -144,7 +144,7 @@ func createClient(dsn string) (*sql.DB, error) {
 ```
 **正确示例：**
 下面init函数不会报错，因为http.HandleFunc会panic，而且也是有在handle为nil的时候会panic，示例不会有这种情况，同时示例里面也不用创建全局变量，函数也不会影响单元测试，
-```
+```go
 func init() {
   redirect := func(w http.ResponseWriter, r *http.Request) {
     http.Redirect(w, r, "/", http.StatusFound)
@@ -186,7 +186,7 @@ go里面没有强制的要使用getters和setters获取数据，一般情况下�
 - 3.Restricting behavior  限制行为
 示例：
 实现一个custom配置包处理动态配置
-```
+```go
 type IntConfig struct {
   // ...
 }
@@ -199,7 +199,7 @@ func (c *IntConfig) Set(value int) {
 ```
 现在有一个threshold的配置，只能读不能对它更新，如果不想更改配置包怎么实现？
 通过创建一个接口来约束对配置的只读功能
-```
+```go
 type intConfigGetter interface {
 Get() int
 }
@@ -250,7 +250,7 @@ store包中InMemoryStore struct实现了在client包中定义的store接口，Ne
 ## 🤔8. any 不传达任何信息
 any是空接口的别名，可以用来代替interface{}
 any缺乏表达能力，后面维护的人还得去看文档或者实现代码才能理解
-```
+```go
 package store
 type Customer struct{
   // Some fields
@@ -267,7 +267,7 @@ func (s *Store) Set(id string, v any) error {
 }
 ```
 编译不会有问题，但是入参和返回值无法表达有用的信息，而且这种可能会有啥类型都调用的情况，比如int
-```
+```go
 s := store.Store{}
 s.Set("foo", 42)
 ```
@@ -283,7 +283,7 @@ s.Set("foo", 42)
 ## 🤔9. 困惑何时使用泛型
 示例：
 需要获取`map[string][int]`中的string
-```
+```go
 func getKeys(m map[string]int) []string {
   var keys []string
   for k := range m {
@@ -293,7 +293,7 @@ func getKeys(m map[string]int) []string {
 }
 ```
 如果后面又新增获取`map[int][string]`的需求，写两个函数或者用switch case的方式都会有代码冗余，而且用switch case方式返回类型必须是any，检查类型是在运行的阶段进行的而不是编译的阶段，所以还得return error，同时调用方还要做类型检查或者额外的类型转换
-```
+```go
 func getKeys(m any) ([]any, error) {
   switch t := m.(type) {
     default:
@@ -310,7 +310,7 @@ func getKeys(m any) ([]any, error) {
 }
 ```
 使用泛型
-```
+```go
 func getKeys[K comparable, V any](m map[K]V) []K {
   var keys []K
   for k := range m {
@@ -321,7 +321,7 @@ func getKeys[K comparable, V any](m map[K]V) []K {
 ```
 注意：map的key必须是可以比较的类型，切片、map和函数都不能直接比较，所有泛型这个的key的类型是comparable而不是any
 也可以自定义约束类型
-```
+```go
 type customConstraint interface {
   ~int | ~string
 }
@@ -330,7 +330,7 @@ func getKeys[K customConstraint,V any](m map[K]V) []K {   //Changes the type par
 }
 ```
 调用方式，使用自定义约束类型之后这个函数会强制要求key类型必须是int或者string
-```
+```go
 m = map[string]int{
   "one": 1,
   "two": 2,
@@ -341,13 +341,13 @@ keys := getKeys(m)
 **使用泛型的场景：**
 1.数据结构：二叉树、堆和链表。。
 2.使用any类型切片、map或channel的函数，例如函数要合并两个any类型的channel
-```
+```go
 func merge[T any](ch1, ch2 <-chan T) <-chan T {
   // ...
 }
 ```
 3.提取公用功能而不是变量类型的时候，例如sort包
-```
+```go
 type Interface interface {
   Len() int
   Less(i, j int) bool
@@ -355,7 +355,7 @@ type Interface interface {
 }
 ```
 这个接口可以被不同的函数sort.Ints或sort.Float64s使用
-```
+```go
 type SliceFn[T any] struct {
   S []T
   Compare func(T, T) bool
