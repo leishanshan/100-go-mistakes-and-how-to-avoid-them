@@ -8,7 +8,7 @@ range循环遍历中，会将每个元素进行值拷贝，上面代码中遍历
 
 **解决方式：**
 用索引变量 i 访问切片元素，或者用传统循环不用range
-```
+```go
 for i := range accounts {
   accounts[i].balance += 1000
 }
@@ -21,7 +21,7 @@ for i := 0; i < len(accounts); i++ {
 讨论` for i, v := range exp`中，exp是怎么计算的，exp可以是数组、切片、map或者channel
 
 **示例1：** 下面循环会不会终止？
-```
+```go
 s := []int{0, 1, 2}
 for range s {
   s = append(s, 10)
@@ -34,7 +34,7 @@ for range s {
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/f46494bc-61b2-4497-82a1-e955f5e1f543)
 
 用传统循环方式，因为在不断append元素，永远不会终止
-```
+```go
 s := []int{0, 1, 2}
 for i := 0; i < len(s); i++ {
   s = append(s, 10)
@@ -42,7 +42,7 @@ for i := 0; i < len(s); i++ {
 ```
 **示例2：** 对channel
 创建两个goroutine，虽然下面ch2赋给了ch，但是前面先做了ch也就是ch1的拷贝，打印的值是0，1，2
-```
+```go
 ch1 := make(chan int, 3)
 go func() {
   ch1 <- 0
@@ -66,7 +66,7 @@ for v := range ch {
 不过ch=ch2也不是没有影响，如果调用close(ch)关闭的是ch2而不是ch1
 
 **示例3：** 对array
-```
+```go
 a := [3]int{0, 1, 2}
 for i, v := range a {
   a[2] = 10
@@ -77,7 +77,7 @@ for i, v := range a {
 ```
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/6b25e013-4342-405b-9536-5a8406ee4c76)
 
-```
+```go
 a := [3]int{0, 1, 2}
 for i := range a {
   a[2] = 10
@@ -87,7 +87,7 @@ for i := range a {
 }
 ```
 也可以使用切片的指针，这样就不用拷贝整个数组，如果数组非常大，用指针更好一点
-```
+```go
 a := [3]int{0, 1, 2}
 for i, v := range &a {
   a[2] = 10
@@ -100,7 +100,7 @@ for i, v := range &a {
 ## 🤔32.忽视在range循环中使用指针元素的影响
 range循环使用指针元素，如果不够谨慎可能会引用错误的元素
 使用指针元素的切片或map的原理：
-```
+```go
 type Store struct {
   m map[string]*Foo
 }
@@ -112,7 +112,7 @@ func (s Store) Put(id string, foo *Foo) {
 1.指针元素被Store结构体和put函数共享
 2.有时候已经对指针进行操作了，所以直接在集合存储指针更方便
 3.如果store结构体很大而且要频繁修改，用指针可以避免大量的拷贝修改
-```
+```go
 func updateMapValue(mapValue map[string]LargeStruct, id string) {
   value := mapValue[id]
   value.foo = "bar"
@@ -123,7 +123,7 @@ func updateMapPointer(mapPointer map[string]*LargeStruct, id string) {
 }
 ```
 **错误示例：**
-```
+```go
 type Customer struct {
   ID string
   Balance float64
@@ -133,7 +133,7 @@ type Store struct {
 }
 ```
 定义了一个Customer结构体，以及Store结构体存储customer信息，storeCustomers对Customer切片用range遍历并将信息存到map中
-```
+```go
 func (s *Store) storeCustomers(customers []Customer) {
   for _, customer := range customers {
     s.m[customer.ID] = &customer
@@ -141,7 +141,7 @@ func (s *Store) storeCustomers(customers []Customer) {
 }
 ```
 如果调用这个函数，打印map结果会是什么？
-```
+```go
 s.storeCustomers([]Customer{
   {ID: "1", Balance: 10},
   {ID: "2", Balance: -10},
@@ -160,7 +160,7 @@ key=3, value=&main.Customer{ID:"3", Balance:0}
 
 解决：
 第一种方式：创建一个局部变量，不存储引用customer的指针，而是存储当前元素的指针，这样map中存储的是引用了不同customer的指针
-```
+```go
 func (s *Store) storeCustomers(customers []Customer) {
   for _, customer := range customers {
     current := customer
@@ -169,7 +169,7 @@ func (s *Store) storeCustomers(customers []Customer) {
 }
 ```
 另一种方式：引用customer切片每一个元素的索引指针
-```
+```go
 func (s *Store) storeCustomers(customers []Customer) {
   for i := range customers {
     customer := &customers[i]
@@ -188,7 +188,7 @@ map迭代不按照key排序，每次迭代的顺序也可能不一样
 **场景2：map迭代时更新元素**
 错误示范：
 运行多次得到的结果会不一样
-```
+```go
 m := map[int]bool{
   0: true,
   1: false,
