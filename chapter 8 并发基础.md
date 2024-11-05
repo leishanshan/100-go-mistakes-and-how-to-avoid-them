@@ -16,7 +16,7 @@ goroutine只有下面几种状态
 - 还有一个阶段，goroutine被创建但是不能执行，其他M已经在执行G，go runtime会将这个G放入队列中，有两种队列，每个P一个本地队列，以及在所有P之间共享的全局队列
 
 场景：归并排序
-```
+```go
 func sequentialMergesort(s []int) {
 	if len(s) <= 1 {
 		return
@@ -31,7 +31,7 @@ func merge(s []int, middle int) {
 }
 ```
 并行实现方式：
-```
+```go
 func parallelMergesortV1(s []int) {
 	if len(s) <= 1 {
 		return
@@ -58,7 +58,7 @@ func parallelMergesortV1(s []int) {
 假如切片有1024个元素，父协程起两个协程分别处理512个元素，两个协程又分别再起两个协程处理256个元素，直到起的协程只用处理单个元素，因为并行处理的工作负载太小了，归并元素的开销小于创建携程和调度执行的开销
 
 解决方式：设置一个分治的阈值，低于阈值的直接就按原始方式处理，高于阈值使用协程并行处理
-```
+```go
 const max = 2048
 func parallelMergesortV2(s []int) {
 	if len(s) <= 1 {
@@ -102,7 +102,7 @@ mutexs和channels具有不同语义，当我们想共享一个状态或者访问
 数据竞争：2个以上协程在同时访问同一块内存并至少有一个在写入
 不产生数据竞争的几种方式
 1.使用 atomic.Value使操作变成原子操作，原子操作使用sync/atomic包
-```
+```go
 var i int64
 go func() {
 	atomic.AddInt64(&i, 1)
@@ -112,7 +112,7 @@ go func() {
 }()
 ```
 2.使用mutex
-```
+```go
 i := 0
 mutex := sync.Mutex{}
 go func() {
@@ -127,7 +127,7 @@ go func() {
 }()
 ```
 3.使用channel （sync/atomic包只对特定数据类型有用，map,struct,slice就不能用）
-```
+```go
 i := 0
 ch := make(chan int)
 go func() {
@@ -140,7 +140,7 @@ i += <-ch
 i += <-ch
 ```
 一个无数据竞争的程序是否就能产生一个确定的结果呢？
-```
+```go
 i := 0
 mutex := sync.Mutex{}
 go func() {
@@ -157,7 +157,7 @@ go func() {
 虽然没有产生数据竞争，但是产生了竞争条件，当操作行为依赖于不可控制的执行顺序或者时间时，就会产生竞争条件。如果想保证goroutine按照指定顺序执行，channel是一种解决方式
 
 **go内存模型**	
-```
+```go
 i := 0
 ch := make(chan struct{})
 go func() {
@@ -175,7 +175,7 @@ variable increment < channel send < channel receive < variable read
 1.cpu速度-cpu绑定
 2.I/O的速度-i/o绑定
 3.可用内存量-内存绑定
-```
+```go
 func read(r io.Reader) (int, error) {
 	count := 0
 	for {
@@ -197,7 +197,7 @@ func read(r io.Reader) (int, error) {
 
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/39604650-aa61-4df0-9542-f5f3047c1f17)
 
-```
+```go
 func read(r io.Reader) (int, error) {
 	var count int64    
 	wg := sync.WaitGroup{}
