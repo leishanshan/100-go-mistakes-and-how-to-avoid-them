@@ -2,7 +2,7 @@
 
 ## 🤔17.创建容易混淆的八进制字面量
 错误示例：
-```
+```go
 sum := 100 + 010
 fmt.Println(sum)
 ```
@@ -41,7 +41,7 @@ s1,s2引用同一个array
 ## 🤔21.低效的切片初始化
 用make初始化切片的时候尽量提供长度和容量，不然append值的时候会一直开辟新的空间并复制原来的array到新的array中，gc还需要努力回收，如果切片元素太大会降低性能
 2种方式，一种分配cap不分配length，另一种分配length
-```
+```go
 func convert(foos []Foo) []Bar {
   n := len(foos)
   bars := make([]Bar, 0, n)
@@ -51,7 +51,7 @@ func convert(foos []Foo) []Bar {
   return bars
 }
 ```
-```
+```go
 func convert(foos []Foo) []Bar {
   n := len(foos)
   bars := make([]Bar, n)
@@ -65,7 +65,7 @@ func convert(foos []Foo) []Bar {
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/82c89425-5d4e-4bc1-a0f4-51fb65ea1704)
 
 虽然第三种更快，但是和第二种性能相差不大，代码却更复杂，推荐第二种用append
-```
+```go
 func collectAllUserKeys(cmp Compare,tombstones []tombstoneWithLevel) [][]byte {
   keys := make([][]byte, 0, len(tombstones)*2)
   for _, t := range tombstones {
@@ -75,7 +75,7 @@ func collectAllUserKeys(cmp Compare,tombstones []tombstoneWithLevel) [][]byte {
   // ...
 }
 ```
-```
+```go
 func collectAllUserKeys(cmp Compare,
 tombstones []tombstoneWithLevel) [][]byte {
   keys := make([][]byte, len(tombstones)*2)
@@ -91,7 +91,7 @@ tombstones []tombstoneWithLevel) [][]byte {
 nil切片是空的，但空切片不一定是nil
 nil slice没有任何内存分配
 empty slice长度为0
-```
+```go
 func main() {
   var s []string
   log(1, s)
@@ -118,7 +118,7 @@ func log(i int, s []string) {
 ## 🤔23.检查slice为空的不恰当使用
 不要用是否为nil判断切片是否为空，应该**取切片长度**来判断
 错误示例：
-```
+```go
 func handleOperations(id string) {
   operations := getOperations(id)
   if operations != nil {
@@ -135,7 +135,7 @@ func getOperations(id string) []float32 {
 }
 ```
 检查长度
-```
+```go
 func handleOperations(id string) {
   operations := getOperations(id)
   if len(operations) != 0 {
@@ -152,14 +152,14 @@ func handleOperations(id string) {
 
 解决：
 1. 创建一个给定长度的dst切片
-```
+```go
 src := []int{0, 1, 2}
 var dst []int
 copy(dst, src)
 fmt.Println(dst)
 ```
 2. 第二种方式
-```
+```go
 src := []int{0, 1, 2}
 dst := append([]int(nil), src...)
 ```
@@ -167,7 +167,7 @@ dst := append([]int(nil), src...)
 ## 🤔25.使用切片append产生的副作用
 **错误示例：**
 s[2]被修改为10
-```
+```go
 s1 := []int{1, 2, 3} 
 s2 := s1[1:2]
 s3 := append(s2, 10)
@@ -176,7 +176,7 @@ s1,s2,s3共享内存
 
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/0c543cf2-c623-4cf5-b111-6e4d4420e7c0)
 
-```
+```go
 func main() {
   s := []int{1, 2, 3}
   f(s[:2])
@@ -188,7 +188,7 @@ func f(s []int) {
 ```
 **解决方式：**
 1.使用copy，缺点是代码可读性差，以及slice很大时使用copy开销大
-```
+```go
 func main() {
   s := []int{1, 2, 3}
   sCopy := make([]int, 2)
@@ -203,7 +203,7 @@ func f(s []int) {
 ```
 2.使用全切片表达式，从一个已有切片中创建新的切片
 `newSlice=oldSlice[low:high:max]`
-```
+```go
 func main() {
   s := []int{1, 2, 3}
   f(s[:2:2])
@@ -218,7 +218,7 @@ func f(s []int) {
 
 ## 🤔26.切片内存泄漏
 **场景示例1：** 一条消息包含100万字节，前5字节表示消息类型，getMessageType计算消息类型，运行程序消耗1G内存，剩余空间因为切片的引用无法被gc掉
-```
+```go
 func consumeMessages() {
   for {
     msg := receiveMessage()
@@ -233,7 +233,7 @@ func getMessageType(msg []byte) []byte {
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/cee086ae-cba7-4f26-aec9-5c356347393e)
 
 **解决：**
-```
+```go
 func getMessageType(msg []byte) []byte {
   msgType := make([]byte, 5)
   copy(msgType, msg)
@@ -241,8 +241,9 @@ func getMessageType(msg []byte) []byte {
 }
 ```
 注意：这种情况最好也不要用全切片表达式，gc不会回收
+
 **场景示例2：**
-```
+```go
 func main() {
   foos := make([]Foo, 1_000)
   printAlloc()
@@ -265,7 +266,7 @@ func keepFirstTwoElementsOnly(foos []Foo) []Foo {
 
 **解决：**
 1.使用copy，因为返回的不是原切片，没有被引用，所以gc能回收
-```
+```go
 func keepFirstTwoElementsOnly(foos []Foo) []Foo {
   res := make([]Foo, 2)
   copy(res, foos)
@@ -273,7 +274,7 @@ func keepFirstTwoElementsOnly(foos []Foo) []Foo {
 }
 ```
 2.如果想保留1000个元素的底层容量，可以显式地将其余切片标记为nil，这里返回len为2，cap为1000的切片，GC可以回收剩下的998个
-```
+```go
 func keepFirstTwoElementsOnly(foos []Foo) []Foo {
   for i := 2; i < len(foos); i++ {
     foos[i].v = nil
@@ -292,7 +293,7 @@ map增长时，桶的数量翻倍，出现map增长的情况：
 插入一个元素时，最坏的情况下复杂度是O(n)，因为内存不够map增长时，所有的keys会被重新分配到所有的桶里
 正确的map初始化：
 指定capacity，避免大量的复制操作
-```
+```go
 m := make(map[string]int, 1_000_000)
 ```
 
@@ -302,7 +303,7 @@ m := make(map[string]int, 1_000_000)
 1、分配一个空map
 2、新增100万个元素
 3、删除所有元素
-```
+```go
 n := 1_000_000
 m := make(map[int][128]byte)
 printAlloc()
@@ -319,7 +320,7 @@ runtime.KeepAlive(m)
 ```
 ![image](https://github.com/leishanshan/100-go-mistakes-and-how-to-avoid-them/assets/59813538/e096fb3d-9b83-4719-9af2-af9214159d8c)
 
-```
+```go
 type hmap struct {
   B uint8 // log_2 of # of buckets  (can hold up to loadFactor * 2^B items)
   // ...
@@ -348,16 +349,18 @@ structs
 arrays
 
 不可比较类型：
+
 比较方式1：使用reflect包 中的reflect.DeepEqual
 接收的数据类型：arrays, structs, slices, maps, pointers, interfaces, and functions
-```
+```go
 var cust1 any = customer{id: "x", operations: []float64{1.}}
 var cust2 any = customer{id: "x", operations: []float64{1.}}
 fmt.Println(cust1 == cust2)
 ```
 缺点：性能比操作符低，因为内部要花时间比较
+
 比较方式2：自定义，如果对性能要求更高，这是个最好的解决方案
-```
+```go
 func (a customer) equal(b customer) bool {
   if a.id != b.id {
     return false
