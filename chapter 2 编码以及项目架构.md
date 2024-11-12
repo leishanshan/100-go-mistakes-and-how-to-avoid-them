@@ -1,6 +1,7 @@
 # chapter 2 编码以及项目架构
 ## 🤔1.Unintended variable shadowing 意想不到的变量阴影
 variable shadowing：在go中，一个变量在一块区域声明之后还能在内层模块中重新声明
+
 下面的代码，外层内层都定义了client，因为内层用了:=符号声明，所以外层的client是空的，这段代码要不是因为log里面使用了client，一般情况会报错，指示有client变量已声明或者未使用
 ```go
 var client *http.Client
@@ -20,6 +21,7 @@ if tracing {
 // Use client
 ```
 那如何保证给原始client变量赋了值呢？两种方式
+
 第一种：在内层模块里面使用临时变量，然后再把临时变量赋给client
 ```go
 var client *http.Client
